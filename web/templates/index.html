@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Tracker</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="auth-screen">
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1>Workout Tracker</h1>
+            <div class="auth-tabs">
+                <button class="active" data-mode="login">Вход</button>
+                <button data-mode="register">Регистрация</button>
+            </div>
+            <form id="auth-form" data-mode="login">
+                <div class="form-group">
+                    <label>Логин</label>
+                    <input type="text" id="auth-login" required>
+                </div>
+                <div id="register-fields" style="display:none">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="auth-email">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <input type="password" id="auth-password" required>
+                </div>
+                <button type="submit" id="auth-submit" class="btn btn-primary">Войти</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- App Screen -->
+<div id="app-screen" style="display:none">
+    <nav>
+        <div class="nav-inner">
+            <div class="logo">Workout Tracker</div>
+            <div class="nav-links">
+                <button data-page="workouts" class="active">Тренировки</button>
+                <button data-page="exercises">Упражнения</button>
+                <button data-page="stats">Статистика</button>
+            </div>
+            <div class="nav-right">
+                <span class="user-name"></span>
+                <button id="logout-btn" class="btn btn-sm btn-outline">Выйти</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Workouts Page -->
+        <div id="page-workouts" class="page active">
+            <div class="section-header">
+                <h2>Мои тренировки</h2>
+                <button id="btn-new-workout" class="btn btn-primary btn-sm">+ Новая тренировка</button>
+            </div>
+            <div id="workouts-list"></div>
+        </div>
+
+        <!-- Exercises Page -->
+        <div id="page-exercises" class="page">
+            <div class="section-header">
+                <h2>Каталог упражнений</h2>
+            </div>
+            <div id="exercises-list"></div>
+            <div id="admin-exercise-form" class="card" style="display:none;margin-top:20px">
+                <h3 style="margin-bottom:16px">Добавить упражнение</h3>
+                <form id="exercise-form">
+                    <div class="form-group">
+                        <label>Название</label>
+                        <input type="text" id="ex-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Группа мышц</label>
+                        <select id="ex-muscle">
+                            <option value="chest">Грудь</option>
+                            <option value="back">Спина</option>
+                            <option value="legs">Ноги</option>
+                            <option value="shoulders">Плечи</option>
+                            <option value="arms">Руки</option>
+                            <option value="core">Пресс</option>
+                            <option value="cardio">Кардио</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Описание</label>
+                        <textarea id="ex-desc" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Добавить</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stats Page -->
+        <div id="page-stats" class="page">
+            <div class="section-header">
+                <h2>Статистика</h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-volume">0 кг</div>
+                    <div class="stat-label">Объём за неделю</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-pr-count">0</div>
+                    <div class="stat-label">Личных рекордов</div>
+                </div>
+            </div>
+            <div class="card">
+                <h3 style="margin-bottom:16px">Личные рекорды</h3>
+                <div id="pr-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Workout Modal -->
+<div id="workout-modal" class="modal-overlay">
+    <div class="modal">
+        <h2>Новая тренировка</h2>
+        <form id="workout-form">
+            <div class="form-group">
+                <label>Название</label>
+                <input type="text" id="w-title" placeholder="Грудь + Трицепс" required>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="form-group">
+                    <label>Дата</label>
+                    <input type="date" id="w-date">
+                </div>
+                <div class="form-group">
+                    <label>Длительность (мин)</label>
+                    <input type="number" id="w-duration" min="0" value="60">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Заметки</label>
+                <textarea id="w-notes" rows="2"></textarea>
+            </div>
+            <div style="margin-bottom:12px">
+                <label style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;display:block">Упражнения</label>
+                <div id="workout-exercises"></div>
+                <button type="button" id="add-exercise-row" class="btn btn-sm btn-outline" style="margin-top:8px">+ Добавить упражнение</button>
+            </div>
+            <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+                <button type="button" id="close-workout-modal" class="btn btn-outline">Отмена</button>
+                <button type="submit" class="btn btn-primary" style="width:auto">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

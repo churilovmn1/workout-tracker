@@ -12,6 +12,7 @@ func NewRouter(
 	exerciseService *service.ExerciseService,
 	workoutService *service.WorkoutService,
 	templateService *service.TemplateService,
+	webDir string,
 ) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -21,6 +22,10 @@ func NewRouter(
 	exerciseHandler := NewExerciseHandler(exerciseService)
 	workoutHandler := NewWorkoutHandler(workoutService)
 	templateHandler := NewTemplateHandler(templateService)
+	webHandler := NewWebHandler(webDir)
+
+	r.Get("/", webHandler.Index)
+	r.Handle("/static/*", webHandler.StaticHandler())
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {

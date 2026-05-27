@@ -17,5 +17,6 @@ type User struct {
 	Email        string    `json:"email" db:"email"`
 	PasswordHash string    `json:"-" db:"password_hash"`
 	Role         Role      `json:"role" db:"role"`
+	TelegramID   *int64    `json:"telegram_id,omitempty" db:"telegram_id"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 }

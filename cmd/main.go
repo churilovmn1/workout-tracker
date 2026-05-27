@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/churilovmn1/workout-tracker/bot"
 	"github.com/churilovmn1/workout-tracker/config"
 	"github.com/churilovmn1/workout-tracker/internal/handler"
 	"github.com/churilovmn1/workout-tracker/internal/repository"
@@ -21,7 +22,9 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	pool, err := repository.NewPostgresPool(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
@@ -38,7 +41,16 @@ func main() {
 	workoutService := service.NewWorkoutService(workoutRepo)
 	templateService := service.NewTemplateService(templateRepo)
 
-	router := handler.NewRouter(authService, exerciseService, workoutService, templateService)
+	if cfg.BotToken != "" {
+		tgBot, err := bot.New(cfg.BotToken, userRepo, workoutService, exerciseService, templateService)
+		if err != nil {
+			log.Printf("failed to create telegram bot: %v", err)
+		} else {
+			go tgBot.Start(ctx)
+		}
+	}
+
+	router := handler.NewRouter(authService, exerciseService, workoutService, templateService, "web")
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -60,8 +72,10 @@ func main() {
 	<-quit
 
 	log.Println("shutting down server...")
-	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
+	cancel()
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("server forced shutdown: %v", err)
