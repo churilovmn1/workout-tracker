@@ -1,0 +1,43 @@
+package service
+
+import (
+	"context"
+
+	"github.com/churilovmn1/workout-tracker/internal/models"
+	"github.com/churilovmn1/workout-tracker/internal/repository"
+)
+
+// ExerciseService handles exercise catalog business logic.
+type ExerciseService struct {
+	repo *repository.ExerciseRepository
+}
+
+// NewExerciseService creates a new ExerciseService.
+func NewExerciseService(repo *repository.ExerciseRepository) *ExerciseService {
+	return &ExerciseService{repo: repo}
+}
+
+// Create adds a new exercise to the catalog.
+func (s *ExerciseService) Create(ctx context.Context, ex *models.Exercise) (int, error) {
+	return s.repo.Create(ctx, ex)
+}
+
+// GetByID returns an exercise by its ID.
+func (s *ExerciseService) GetByID(ctx context.Context, id int) (*models.Exercise, error) {
+	return s.repo.GetByID(ctx, id)
+}
+
+// List returns exercises, optionally filtered by muscle group.
+func (s *ExerciseService) List(ctx context.Context, muscleGroup string) ([]models.Exercise, error) {
+	return s.repo.List(ctx, muscleGroup)
+}
+
+// Update modifies an existing exercise.
+func (s *ExerciseService) Update(ctx context.Context, ex *models.Exercise) error {
+	return s.repo.Update(ctx, ex)
+}
+
+// Delete removes an exercise by ID.
+func (s *ExerciseService) Delete(ctx context.Context, id int) error {
+	return s.repo.Delete(ctx, id)
+}
