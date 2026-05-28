@@ -163,6 +163,9 @@ async function loadWorkouts() {
 }
 
 $('#btn-new-workout').addEventListener('click', () => {
+    // Reset exercise filter when opening modal
+    $('#modal-ex-search').value = '';
+    $('#modal-ex-group').value  = '';
     $('#workout-modal').classList.add('active');
     loadExerciseOptions();
 });
@@ -171,6 +174,39 @@ $('#close-workout-modal').addEventListener('click', () => $('#workout-modal').cl
 $('#workout-modal').addEventListener('click', (e) => {
     if (e.target === $('#workout-modal')) $('#workout-modal').classList.remove('active');
 });
+
+// Returns exercises matching current modal filter
+function getModalFilteredExercises() {
+    const search = ($('#modal-ex-search')?.value || '').toLowerCase().trim();
+    const group  = $('#modal-ex-group')?.value || '';
+    return (window._exercises || []).filter((e) => {
+        if (group && e.muscle_group !== group) return false;
+        if (search && !e.name.toLowerCase().includes(search)) return false;
+        return true;
+    });
+}
+
+function buildSelectOptions(exercises) {
+    if (!exercises.length) return '<option value="" disabled>Не найдено</option>';
+    return exercises
+        .map((e) => `<option value="${e.id}">${esc(e.name)} (${esc(e.muscle_group)})</option>`)
+        .join('');
+}
+
+// Rebuilds options in all existing exercise selects after filter changes
+function updateExerciseSelects() {
+    const opts = buildSelectOptions(getModalFilteredExercises());
+    $$('#workout-exercises .exercise-row select[name=exercise_id]').forEach((sel) => {
+        sel.innerHTML = opts;
+    });
+}
+
+let modalExSearchTimer = null;
+$('#modal-ex-search').addEventListener('input', () => {
+    clearTimeout(modalExSearchTimer);
+    modalExSearchTimer = setTimeout(updateExerciseSelects, 200);
+});
+$('#modal-ex-group').addEventListener('change', updateExerciseSelects);
 
 async function loadExerciseOptions() {
     try {
@@ -182,9 +218,7 @@ async function loadExerciseOptions() {
 }
 
 function addExerciseRow() {
-    const opts = (window._exercises || [])
-        .map((e) => `<option value="${e.id}">${esc(e.name)} (${esc(e.muscle_group)})</option>`)
-        .join('');
+    const opts = buildSelectOptions(getModalFilteredExercises());
     const row = document.createElement('div');
     row.className = 'exercise-row';
     row.innerHTML = `
