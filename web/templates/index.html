@@ -44,9 +44,14 @@
         <div class="nav-inner">
             <div class="logo">Workout Tracker</div>
             <div class="nav-links">
-                <button data-page="workouts" class="active">Тренировки</button>
+                <!-- User tabs -->
+                <button data-page="workouts" id="nav-workouts">Тренировки</button>
+                <!-- Trainer tabs (hidden by default) -->
+                <button data-page="schedule" id="nav-schedule" style="display:none">Расписание</button>
+                <!-- Shared tabs -->
                 <button data-page="exercises">Упражнения</button>
                 <button data-page="stats">Статистика</button>
+                <!-- Admin-only -->
                 <button data-page="admin" id="nav-admin" style="display:none">Тренер</button>
             </div>
             <div class="nav-right">
@@ -57,13 +62,30 @@
     </nav>
 
     <div class="container">
-        <!-- Workouts Page -->
-        <div id="page-workouts" class="page active">
+
+        <!-- Workouts Page (users only) -->
+        <div id="page-workouts" class="page">
             <div class="section-header">
                 <h2>Мои тренировки</h2>
                 <button id="btn-new-workout" class="btn btn-primary btn-sm">+ Новая тренировка</button>
             </div>
             <div id="workouts-list"></div>
+        </div>
+
+        <!-- Schedule Page (trainer only) -->
+        <div id="page-schedule" class="page">
+            <div class="section-header">
+                <div>
+                    <h2>Расписание</h2>
+                    <div class="week-nav">
+                        <button class="btn btn-sm btn-outline" onclick="changeWeek(-1)">←</button>
+                        <span id="week-label" style="margin:0 8px;font-size:0.9rem;color:var(--text-muted)"></span>
+                        <button class="btn btn-sm btn-outline" onclick="changeWeek(1)">→</button>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="openScheduleModal()">+ Новая запись</button>
+            </div>
+            <div id="schedule-grid"></div>
         </div>
 
         <!-- Exercises Page -->
@@ -117,9 +139,7 @@
 
         <!-- Stats Page -->
         <div id="page-stats" class="page">
-            <div class="section-header">
-                <h2>Статистика</h2>
-            </div>
+            <div class="section-header"><h2>Статистика</h2></div>
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="stat-volume">0 кг</div>
@@ -136,28 +156,35 @@
             </div>
         </div>
 
-        <!-- Admin Page -->
+        <!-- Admin / Trainer Page -->
         <div id="page-admin" class="page">
-            <div id="admin-users-view">
-                <div class="section-header">
-                    <h2>Панель тренера</h2>
-                </div>
-                <div id="admin-users-list"></div>
+            <!-- Sub-tabs -->
+            <div class="subtabs">
+                <button class="subtab active" data-subtab="clients" onclick="switchAdminTab('clients')">Клиенты</button>
             </div>
-            <div id="admin-workouts-view" style="display:none">
-                <div class="section-header">
-                    <div>
-                        <h2 id="admin-user-title">Тренировки пользователя</h2>
+
+            <!-- Clients sub-tab -->
+            <div id="subtab-clients">
+                <div id="admin-users-view">
+                    <div class="section-header" style="margin-top:16px">
+                        <h2>Клиенты</h2>
                     </div>
-                    <button class="btn btn-sm btn-outline" onclick="showAdminUsers()">← Назад</button>
+                    <div id="admin-users-list"></div>
                 </div>
-                <div id="admin-workouts-list"></div>
+                <div id="admin-workouts-view" style="display:none">
+                    <div class="section-header" style="margin-top:16px">
+                        <h2 id="admin-user-title">Тренировки</h2>
+                        <button class="btn btn-sm btn-outline" onclick="showAdminUsers()">← Назад</button>
+                    </div>
+                    <div id="admin-workouts-list"></div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- New Workout Modal -->
+    </div><!-- /container -->
+</div><!-- /app-screen -->
+
+<!-- Workout Modal -->
 <div id="workout-modal" class="modal-overlay">
     <div class="modal">
         <h2>Новая тренировка</h2>
@@ -190,6 +217,60 @@
                 <button type="submit" class="btn btn-primary" style="width:auto">Сохранить</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Schedule Modal -->
+<div id="schedule-modal" class="modal-overlay">
+    <div class="modal" style="max-width:480px">
+        <h2>Новая запись в расписании</h2>
+        <form id="schedule-form">
+            <div class="form-group">
+                <label>Клиент</label>
+                <select id="sch-client" required></select>
+            </div>
+            <div class="form-group">
+                <label>Название тренировки</label>
+                <input type="text" id="sch-title" placeholder="Жим + Плечи" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Дата</label>
+                    <input type="date" id="sch-date" required>
+                </div>
+                <div class="form-group">
+                    <label>Время</label>
+                    <input type="time" id="sch-time" value="10:00" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Длительность (мин)</label>
+                <input type="number" id="sch-duration" value="60" min="15" step="15">
+            </div>
+            <div class="form-group">
+                <label>Заметки</label>
+                <textarea id="sch-notes" rows="2"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" onclick="closeScheduleModal()" class="btn btn-outline">Отмена</button>
+                <button type="submit" class="btn btn-primary" style="width:auto">Создать</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Schedule Detail Modal -->
+<div id="schedule-detail-modal" class="modal-overlay">
+    <div class="modal" style="max-width:420px">
+        <h2 id="det-title"></h2>
+        <div id="det-info" style="color:var(--text-muted);font-size:0.9rem;margin-bottom:16px;line-height:1.7"></div>
+        <div id="det-actions" class="modal-actions">
+            <button class="btn btn-outline" onclick="closeDetailModal()">Закрыть</button>
+            <button id="det-client-btn" class="btn btn-outline" style="width:auto" onclick="goToClientFromDetail()">Тренировки клиента</button>
+            <button id="det-done-btn" class="btn btn-primary" style="width:auto" onclick="setScheduleStatus('completed')">Завершить</button>
+            <button id="det-cancel-btn" class="btn btn-danger" style="width:auto" onclick="setScheduleStatus('cancelled')">Отменить</button>
+            <button id="det-delete-btn" class="btn btn-outline" style="width:auto;border-color:var(--danger);color:var(--danger)" onclick="deleteScheduleEntry()">Удалить</button>
+        </div>
     </div>
 </div>
 

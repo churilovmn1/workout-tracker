@@ -35,12 +35,13 @@ func main() {
 	exerciseRepo := repository.NewExerciseRepository(pool)
 	workoutRepo := repository.NewWorkoutRepository(pool)
 	templateRepo := repository.NewTemplateRepository(pool)
+	scheduleRepo := repository.NewScheduleRepository(pool)
 
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret)
 	exerciseService := service.NewExerciseService(exerciseRepo)
 	workoutService := service.NewWorkoutService(workoutRepo)
 	templateService := service.NewTemplateService(templateRepo)
-	adminService := service.NewAdminService(userRepo, workoutRepo)
+	adminService := service.NewAdminService(userRepo, workoutRepo, scheduleRepo)
 
 	if cfg.BotToken != "" {
 		tgBot, err := bot.New(cfg.BotToken, userRepo, workoutService, exerciseService, templateService)
