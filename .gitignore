@@ -3,3 +3,4 @@ bin/
 .env
 *.env.local
 vendor/
+CLAUDE.md
