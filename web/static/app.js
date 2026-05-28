@@ -82,11 +82,12 @@ function parseToken() {
 
 function setupNav() {
     const isAdmin = currentUser.role === 'admin';
-    // Workouts tab: only for regular users
+    // Workouts + Stats: only for regular users
     $('#nav-workouts').style.display = isAdmin ? 'none' : '';
+    $('#nav-stats').style.display    = isAdmin ? 'none' : '';
     // Schedule + Trainer tabs: only for admins
     $('#nav-schedule').style.display = isAdmin ? '' : 'none';
-    $('#nav-admin').style.display   = isAdmin ? '' : 'none';
+    $('#nav-admin').style.display    = isAdmin ? '' : 'none';
     // Username label
     $('.user-name').textContent = isAdmin ? 'Тренер' : 'User #' + currentUser.id;
 }
@@ -260,7 +261,14 @@ function addDays(d, n) {
     return r;
 }
 
-function toISODate(d) { return d.toISOString().slice(0, 10); }
+// Uses LOCAL year/month/day — avoids UTC shift that pushed week to wrong Monday.
+function toISODate(d) {
+    return [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2, '0'),
+        String(d.getDate()).padStart(2, '0'),
+    ].join('-');
+}
 
 function changeWeek(dir) {
     currentWeekStart = addDays(currentWeekStart, dir * 7);
