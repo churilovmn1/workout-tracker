@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -28,11 +29,11 @@ type workoutExerciseRequest struct {
 }
 
 type workoutRequest struct {
-	Title           string                   `json:"title"`
-	Date            string                   `json:"date"`
-	DurationMinutes int                      `json:"duration_minutes"`
-	Notes           string                   `json:"notes"`
-	Exercises       []workoutExerciseRequest  `json:"exercises"`
+	Title           string                  `json:"title"`
+	Date            string                  `json:"date"`
+	DurationMinutes int                     `json:"duration_minutes"`
+	Notes           string                  `json:"notes"`
+	Exercises       []workoutExerciseRequest `json:"exercises"`
 }
 
 type volumeResponse struct {
@@ -60,6 +61,10 @@ func (h *WorkoutHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	workout, err := h.workoutService.GetByID(r.Context(), id, getUserID(r))
 	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			writeError(w, http.StatusForbidden, "access denied")
+			return
+		}
 		writeError(w, http.StatusNotFound, "workout not found")
 		return
 	}
@@ -150,6 +155,10 @@ func (h *WorkoutHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.workoutService.Update(r.Context(), workout); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			writeError(w, http.StatusForbidden, "access denied")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to update workout")
 		return
 	}
@@ -183,6 +192,10 @@ func (h *WorkoutHandler) Copy(w http.ResponseWriter, r *http.Request) {
 
 	newID, err := h.workoutService.CopyWorkout(r.Context(), id, getUserID(r))
 	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			writeError(w, http.StatusForbidden, "access denied")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to copy workout")
 		return
 	}

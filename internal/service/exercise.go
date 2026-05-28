@@ -4,16 +4,23 @@ import (
 	"context"
 
 	"github.com/churilovmn1/workout-tracker/internal/models"
-	"github.com/churilovmn1/workout-tracker/internal/repository"
 )
+
+type exerciseRepository interface {
+	Create(ctx context.Context, ex *models.Exercise) (int, error)
+	GetByID(ctx context.Context, id int) (*models.Exercise, error)
+	List(ctx context.Context, muscleGroup string) ([]models.Exercise, error)
+	Update(ctx context.Context, ex *models.Exercise) error
+	Delete(ctx context.Context, id int) error
+}
 
 // ExerciseService handles exercise catalog business logic.
 type ExerciseService struct {
-	repo *repository.ExerciseRepository
+	repo exerciseRepository
 }
 
 // NewExerciseService creates a new ExerciseService.
-func NewExerciseService(repo *repository.ExerciseRepository) *ExerciseService {
+func NewExerciseService(repo exerciseRepository) *ExerciseService {
 	return &ExerciseService{repo: repo}
 }
 

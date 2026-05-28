@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/churilovmn1/workout-tracker/internal/models"
-	"github.com/churilovmn1/workout-tracker/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -16,6 +15,11 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrUserExists         = errors.New("user already exists")
 )
+
+type userRepository interface {
+	Create(ctx context.Context, user *models.User) (int, error)
+	GetByLogin(ctx context.Context, login string) (*models.User, error)
+}
 
 // Claims represents JWT token payload.
 type Claims struct {
@@ -26,12 +30,12 @@ type Claims struct {
 
 // AuthService handles authentication and authorization logic.
 type AuthService struct {
-	userRepo  *repository.UserRepository
+	userRepo  userRepository
 	jwtSecret []byte
 }
 
 // NewAuthService creates a new AuthService.
-func NewAuthService(userRepo *repository.UserRepository, jwtSecret string) *AuthService {
+func NewAuthService(userRepo userRepository, jwtSecret string) *AuthService {
 	return &AuthService{
 		userRepo:  userRepo,
 		jwtSecret: []byte(jwtSecret),

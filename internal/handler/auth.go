@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"net/mail"
 
 	"github.com/churilovmn1/workout-tracker/internal/service"
 )
@@ -41,6 +42,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	if req.Login == "" || req.Email == "" || req.Password == "" {
 		writeError(w, http.StatusBadRequest, "login, email and password are required")
+		return
+	}
+
+	if _, err := mail.ParseAddress(req.Email); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid email address")
 		return
 	}
 

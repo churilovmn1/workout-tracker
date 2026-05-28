@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -12,11 +13,12 @@ import (
 // TemplateHandler handles workout template endpoints.
 type TemplateHandler struct {
 	templateService *service.TemplateService
+	workoutService  *service.WorkoutService
 }
 
 // NewTemplateHandler creates a new TemplateHandler.
-func NewTemplateHandler(templateService *service.TemplateService) *TemplateHandler {
-	return &TemplateHandler{templateService: templateService}
+func NewTemplateHandler(ts *service.TemplateService, ws *service.WorkoutService) *TemplateHandler {
+	return &TemplateHandler{templateService: ts, workoutService: ws}
 }
 
 type templateExerciseRequest struct {
@@ -43,7 +45,7 @@ func (h *TemplateHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, templates)
 }
 
-// GetByID returns a template by ID.
+// GetByID returns a template by ID if the user has access.
 func (h *TemplateHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
@@ -51,8 +53,12 @@ func (h *TemplateHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpl, err := h.templateService.GetByID(r.Context(), id)
+	tmpl, err := h.templateService.GetByID(r.Context(), id, getUserID(r))
 	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			writeError(w, http.StatusForbidden, "access denied")
+			return
+		}
 		writeError(w, http.StatusNotFound, "template not found")
 		return
 	}
@@ -150,4 +156,35 @@ func (h *TemplateHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Start creates a workout for the authenticated user based on a template.
+func (h *TemplateHandler) Start(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid template id")
+		return
+	}
+
+	userID := getUserID(r)
+	tmpl, err := h.templateService.GetByID(r.Context(), id, userID)
+	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			writeError(w, http.StatusForbidden, "access denied")
+			return
+		}
+		writeError(w, http.StatusNotFound, "template not found")
+		return
+	}
+
+	workout := h.templateService.CreateWorkoutFromTemplate(tmpl, userID)
+
+	workoutID, err := h.workoutService.Create(r.Context(), workout)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create workout")
+		return
+	}
+
+	workout.ID = workoutID
+	writeJSON(w, http.StatusCreated, workout)
 }

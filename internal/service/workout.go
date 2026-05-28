@@ -3,20 +3,30 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/churilovmn1/workout-tracker/internal/models"
-	"github.com/churilovmn1/workout-tracker/internal/repository"
 )
 
 var ErrForbidden = errors.New("access denied")
 
+type workoutRepository interface {
+	Create(ctx context.Context, w *models.Workout) (int, error)
+	GetByID(ctx context.Context, id int) (*models.Workout, error)
+	ListByUser(ctx context.Context, userID int) ([]models.Workout, error)
+	Update(ctx context.Context, w *models.Workout) error
+	Delete(ctx context.Context, id, userID int) error
+	GetPersonalRecords(ctx context.Context, userID int) ([]models.WorkoutExercise, error)
+	GetWeeklyVolume(ctx context.Context, userID int) (float64, error)
+}
+
 // WorkoutService handles workout business logic.
 type WorkoutService struct {
-	repo *repository.WorkoutRepository
+	repo workoutRepository
 }
 
 // NewWorkoutService creates a new WorkoutService.
-func NewWorkoutService(repo *repository.WorkoutRepository) *WorkoutService {
+func NewWorkoutService(repo workoutRepository) *WorkoutService {
 	return &WorkoutService{repo: repo}
 }
 
@@ -42,8 +52,15 @@ func (s *WorkoutService) ListByUser(ctx context.Context, userID int) ([]models.W
 	return s.repo.ListByUser(ctx, userID)
 }
 
-// Update modifies a workout owned by the user.
+// Update modifies a workout after verifying ownership.
 func (s *WorkoutService) Update(ctx context.Context, w *models.Workout) error {
+	existing, err := s.repo.GetByID(ctx, w.ID)
+	if err != nil {
+		return err
+	}
+	if existing.UserID != w.UserID {
+		return ErrForbidden
+	}
 	return s.repo.Update(ctx, w)
 }
 
@@ -72,18 +89,22 @@ func (s *WorkoutService) CopyWorkout(ctx context.Context, sourceID, userID int) 
 		return 0, ErrForbidden
 	}
 
-	copy := &models.Workout{
+	dst := &models.Workout{
 		UserID:    userID,
 		Title:     source.Title,
-		Date:      source.Date,
+		Date:      time.Now(),
 		Notes:     source.Notes,
-		Exercises: source.Exercises,
+		Exercises: make([]models.WorkoutExercise, len(source.Exercises)),
 	}
 
-	for i := range copy.Exercises {
-		copy.Exercises[i].ID = 0
-		copy.Exercises[i].WorkoutID = 0
+	for i, ex := range source.Exercises {
+		dst.Exercises[i] = models.WorkoutExercise{
+			ExerciseID: ex.ExerciseID,
+			Sets:       ex.Sets,
+			Reps:       ex.Reps,
+			WeightKg:   ex.WeightKg,
+		}
 	}
 
-	return s.repo.Create(ctx, copy)
+	return s.repo.Create(ctx, dst)
 }

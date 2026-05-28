@@ -21,7 +21,7 @@ func NewRouter(
 	authHandler := NewAuthHandler(authService)
 	exerciseHandler := NewExerciseHandler(exerciseService)
 	workoutHandler := NewWorkoutHandler(workoutService)
-	templateHandler := NewTemplateHandler(templateService)
+	templateHandler := NewTemplateHandler(templateService, workoutService)
 	webHandler := NewWebHandler(webDir)
 
 	r.Get("/", webHandler.Index)
@@ -63,6 +63,7 @@ func NewRouter(
 				r.Get("/{id}", templateHandler.GetByID)
 				r.Put("/{id}", templateHandler.Update)
 				r.Delete("/{id}", templateHandler.Delete)
+				r.Post("/{id}/start", templateHandler.Start)
 			})
 
 			r.Route("/stats", func(r chi.Router) {
