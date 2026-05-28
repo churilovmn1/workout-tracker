@@ -9,7 +9,7 @@ import (
 type exerciseRepository interface {
 	Create(ctx context.Context, ex *models.Exercise) (int, error)
 	GetByID(ctx context.Context, id int) (*models.Exercise, error)
-	List(ctx context.Context, muscleGroup string) ([]models.Exercise, error)
+	List(ctx context.Context, muscleGroup, search string) ([]models.Exercise, error)
 	Update(ctx context.Context, ex *models.Exercise) error
 	Delete(ctx context.Context, id int) error
 }
@@ -34,9 +34,9 @@ func (s *ExerciseService) GetByID(ctx context.Context, id int) (*models.Exercise
 	return s.repo.GetByID(ctx, id)
 }
 
-// List returns exercises, optionally filtered by muscle group.
-func (s *ExerciseService) List(ctx context.Context, muscleGroup string) ([]models.Exercise, error) {
-	return s.repo.List(ctx, muscleGroup)
+// List returns exercises filtered by muscle group and/or name search term.
+func (s *ExerciseService) List(ctx context.Context, muscleGroup, search string) ([]models.Exercise, error) {
+	return s.repo.List(ctx, muscleGroup, search)
 }
 
 // Update modifies an existing exercise.

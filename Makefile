@@ -1,6 +1,9 @@
 .PHONY: build run test migrate-up migrate-down lint
 
-DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/workout_tracker?sslmode=disable
+-include .env
+export
+
+DATABASE_URL ?= postgres://postgres:postgres@localhost:5433/workout_tracker?sslmode=disable
 
 build:
 	go build -o bin/workout-tracker ./cmd/

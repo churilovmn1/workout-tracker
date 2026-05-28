@@ -12,6 +12,7 @@ func NewRouter(
 	exerciseService *service.ExerciseService,
 	workoutService *service.WorkoutService,
 	templateService *service.TemplateService,
+	adminService *service.AdminService,
 	webDir string,
 ) chi.Router {
 	r := chi.NewRouter()
@@ -22,6 +23,7 @@ func NewRouter(
 	exerciseHandler := NewExerciseHandler(exerciseService)
 	workoutHandler := NewWorkoutHandler(workoutService)
 	templateHandler := NewTemplateHandler(templateService, workoutService)
+	adminHandler := NewAdminHandler(adminService)
 	webHandler := NewWebHandler(webDir)
 
 	r.Get("/", webHandler.Index)
@@ -69,6 +71,14 @@ func NewRouter(
 			r.Route("/stats", func(r chi.Router) {
 				r.Get("/pr", workoutHandler.PersonalRecords)
 				r.Get("/volume", workoutHandler.WeeklyVolume)
+			})
+
+			r.Route("/admin", func(r chi.Router) {
+				r.Use(AdminOnly)
+				r.Get("/users", adminHandler.ListUsers)
+				r.Get("/users/{id}/workouts", adminHandler.ListUserWorkouts)
+				r.Post("/users/{id}/workouts", adminHandler.CreateWorkoutForUser)
+				r.Put("/workouts/{id}/comment", adminHandler.SetComment)
 			})
 		})
 	})

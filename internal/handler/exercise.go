@@ -25,11 +25,12 @@ type exerciseRequest struct {
 	Description string `json:"description"`
 }
 
-// List returns all exercises.
+// List returns exercises filtered by muscle_group and/or search query.
 func (h *ExerciseHandler) List(w http.ResponseWriter, r *http.Request) {
 	muscleGroup := r.URL.Query().Get("muscle_group")
+	search := r.URL.Query().Get("search")
 
-	exercises, err := h.exerciseService.List(r.Context(), muscleGroup)
+	exercises, err := h.exerciseService.List(r.Context(), muscleGroup, search)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list exercises")
 		return

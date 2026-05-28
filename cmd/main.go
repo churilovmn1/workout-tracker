@@ -40,6 +40,7 @@ func main() {
 	exerciseService := service.NewExerciseService(exerciseRepo)
 	workoutService := service.NewWorkoutService(workoutRepo)
 	templateService := service.NewTemplateService(templateRepo)
+	adminService := service.NewAdminService(userRepo, workoutRepo)
 
 	if cfg.BotToken != "" {
 		tgBot, err := bot.New(cfg.BotToken, userRepo, workoutService, exerciseService, templateService)
@@ -50,7 +51,7 @@ func main() {
 		}
 	}
 
-	router := handler.NewRouter(authService, exerciseService, workoutService, templateService, "web")
+	router := handler.NewRouter(authService, exerciseService, workoutService, templateService, adminService, "web")
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

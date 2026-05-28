@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/churilovmn1/workout-tracker/internal/models"
@@ -34,12 +35,16 @@ func (m *mockExerciseRepo) GetByID(_ context.Context, id int) (*models.Exercise,
 	return &clone, nil
 }
 
-func (m *mockExerciseRepo) List(_ context.Context, muscleGroup string) ([]models.Exercise, error) {
+func (m *mockExerciseRepo) List(_ context.Context, muscleGroup, search string) ([]models.Exercise, error) {
 	var result []models.Exercise
 	for _, ex := range m.exercises {
-		if muscleGroup == "" || ex.MuscleGroup == muscleGroup {
-			result = append(result, *ex)
+		if muscleGroup != "" && ex.MuscleGroup != muscleGroup {
+			continue
 		}
+		if search != "" && !strings.Contains(strings.ToLower(ex.Name), strings.ToLower(search)) {
+			continue
+		}
+		result = append(result, *ex)
 	}
 	return result, nil
 }
@@ -109,7 +114,7 @@ func TestExerciseList_All(t *testing.T) {
 	svc.Create(ctx, &models.Exercise{Name: "Pull-up", MuscleGroup: "back"})
 	svc.Create(ctx, &models.Exercise{Name: "Dip", MuscleGroup: "chest"})
 
-	all, err := svc.List(ctx, "")
+	all, err := svc.List(ctx, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -126,7 +131,7 @@ func TestExerciseList_FilteredByMuscleGroup(t *testing.T) {
 	svc.Create(ctx, &models.Exercise{Name: "Pull-up", MuscleGroup: "back"})
 	svc.Create(ctx, &models.Exercise{Name: "Dip", MuscleGroup: "chest"})
 
-	chest, err := svc.List(ctx, "chest")
+	chest, err := svc.List(ctx, "chest", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

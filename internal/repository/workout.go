@@ -59,9 +59,9 @@ func (r *WorkoutRepository) Create(ctx context.Context, w *models.Workout) (int,
 func (r *WorkoutRepository) GetByID(ctx context.Context, id int) (*models.Workout, error) {
 	w := &models.Workout{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, user_id, title, date, duration_minutes, notes, created_at
+		`SELECT id, user_id, title, date, duration_minutes, notes, trainer_comment, created_at
 		 FROM workouts WHERE id = $1`, id,
-	).Scan(&w.ID, &w.UserID, &w.Title, &w.Date, &w.DurationMinutes, &w.Notes, &w.CreatedAt)
+	).Scan(&w.ID, &w.UserID, &w.Title, &w.Date, &w.DurationMinutes, &w.Notes, &w.TrainerComment, &w.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("get workout: %w", err)
 	}
@@ -78,7 +78,7 @@ func (r *WorkoutRepository) GetByID(ctx context.Context, id int) (*models.Workou
 // ListByUser returns all workouts for a user, ordered by date descending.
 func (r *WorkoutRepository) ListByUser(ctx context.Context, userID int) ([]models.Workout, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, user_id, title, date, duration_minutes, notes, created_at
+		`SELECT id, user_id, title, date, duration_minutes, notes, trainer_comment, created_at
 		 FROM workouts WHERE user_id = $1
 		 ORDER BY date DESC`, userID)
 	if err != nil {
@@ -88,7 +88,7 @@ func (r *WorkoutRepository) ListByUser(ctx context.Context, userID int) ([]model
 
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (models.Workout, error) {
 		var w models.Workout
-		err := row.Scan(&w.ID, &w.UserID, &w.Title, &w.Date, &w.DurationMinutes, &w.Notes, &w.CreatedAt)
+		err := row.Scan(&w.ID, &w.UserID, &w.Title, &w.Date, &w.DurationMinutes, &w.Notes, &w.TrainerComment, &w.CreatedAt)
 		return w, err
 	})
 }
@@ -135,6 +135,16 @@ func (r *WorkoutRepository) Delete(ctx context.Context, id, userID int) error {
 		`DELETE FROM workouts WHERE id = $1 AND user_id = $2`, id, userID)
 	if err != nil {
 		return fmt.Errorf("delete workout: %w", err)
+	}
+	return nil
+}
+
+// SetTrainerComment sets the trainer's comment on any workout (admin operation).
+func (r *WorkoutRepository) SetTrainerComment(ctx context.Context, id int, comment string) error {
+	_, err := r.pool.Exec(ctx,
+		`UPDATE workouts SET trainer_comment = $1 WHERE id = $2`, comment, id)
+	if err != nil {
+		return fmt.Errorf("set trainer comment: %w", err)
 	}
 	return nil
 }

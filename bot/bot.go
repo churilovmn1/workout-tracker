@@ -358,7 +358,7 @@ func (b *Bot) cmdStats(ctx context.Context, msg *tgbotapi.Message, telegramID in
 }
 
 func (b *Bot) cmdExercises(ctx context.Context, msg *tgbotapi.Message) {
-	exercises, err := b.exerciseService.List(ctx, "")
+	exercises, err := b.exerciseService.List(ctx, "", "")
 	if err != nil {
 		b.send(msg.Chat.ID, "Ошибка загрузки упражнений.")
 		return

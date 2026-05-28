@@ -47,6 +47,7 @@
                 <button data-page="workouts" class="active">Тренировки</button>
                 <button data-page="exercises">Упражнения</button>
                 <button data-page="stats">Статистика</button>
+                <button data-page="admin" id="nav-admin" style="display:none">Тренер</button>
             </div>
             <div class="nav-right">
                 <span class="user-name"></span>
@@ -70,6 +71,20 @@
             <div class="section-header">
                 <h2>Каталог упражнений</h2>
             </div>
+            <div class="search-bar">
+                <input type="text" id="exercise-search" placeholder="Поиск по названию...">
+                <select id="exercise-filter">
+                    <option value="">Все группы</option>
+                    <option value="Грудь">Грудь</option>
+                    <option value="Спина">Спина</option>
+                    <option value="Плечи">Плечи</option>
+                    <option value="Бицепс">Бицепс</option>
+                    <option value="Трицепс">Трицепс</option>
+                    <option value="Ноги">Ноги</option>
+                    <option value="Пресс">Пресс</option>
+                    <option value="Кардио">Кардио</option>
+                </select>
+            </div>
             <div id="exercises-list"></div>
             <div id="admin-exercise-form" class="card" style="display:none;margin-top:20px">
                 <h3 style="margin-bottom:16px">Добавить упражнение</h3>
@@ -81,13 +96,14 @@
                     <div class="form-group">
                         <label>Группа мышц</label>
                         <select id="ex-muscle">
-                            <option value="chest">Грудь</option>
-                            <option value="back">Спина</option>
-                            <option value="legs">Ноги</option>
-                            <option value="shoulders">Плечи</option>
-                            <option value="arms">Руки</option>
-                            <option value="core">Пресс</option>
-                            <option value="cardio">Кардио</option>
+                            <option value="Грудь">Грудь</option>
+                            <option value="Спина">Спина</option>
+                            <option value="Плечи">Плечи</option>
+                            <option value="Бицепс">Бицепс</option>
+                            <option value="Трицепс">Трицепс</option>
+                            <option value="Ноги">Ноги</option>
+                            <option value="Пресс">Пресс</option>
+                            <option value="Кардио">Кардио</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -119,6 +135,25 @@
                 <div id="pr-list"></div>
             </div>
         </div>
+
+        <!-- Admin Page -->
+        <div id="page-admin" class="page">
+            <div id="admin-users-view">
+                <div class="section-header">
+                    <h2>Панель тренера</h2>
+                </div>
+                <div id="admin-users-list"></div>
+            </div>
+            <div id="admin-workouts-view" style="display:none">
+                <div class="section-header">
+                    <div>
+                        <h2 id="admin-user-title">Тренировки пользователя</h2>
+                    </div>
+                    <button class="btn btn-sm btn-outline" onclick="showAdminUsers()">← Назад</button>
+                </div>
+                <div id="admin-workouts-list"></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -131,7 +166,7 @@
                 <label>Название</label>
                 <input type="text" id="w-title" placeholder="Грудь + Трицепс" required>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-row">
                 <div class="form-group">
                     <label>Дата</label>
                     <input type="date" id="w-date">
@@ -150,11 +185,27 @@
                 <div id="workout-exercises"></div>
                 <button type="button" id="add-exercise-row" class="btn btn-sm btn-outline" style="margin-top:8px">+ Добавить упражнение</button>
             </div>
-            <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+            <div class="modal-actions">
                 <button type="button" id="close-workout-modal" class="btn btn-outline">Отмена</button>
                 <button type="submit" class="btn btn-primary" style="width:auto">Сохранить</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Trainer Comment Modal -->
+<div id="comment-modal" class="modal-overlay">
+    <div class="modal" style="max-width:420px">
+        <h2>Комментарий тренера</h2>
+        <input type="hidden" id="comment-workout-id">
+        <div class="form-group">
+            <label>Комментарий</label>
+            <textarea id="comment-text" rows="4" placeholder="Введите комментарий для спортсмена..."></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="closeCommentModal()">Отмена</button>
+            <button class="btn btn-primary" style="width:auto" onclick="submitComment()">Сохранить</button>
+        </div>
     </div>
 </div>
 

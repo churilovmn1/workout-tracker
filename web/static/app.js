@@ -28,12 +28,10 @@ function toast(msg, type = 'success') {
     setTimeout(() => el.remove(), 3000);
 }
 
-// Auth
+// ── Auth ──────────────────────────────────────────────────
+
 function initAuth() {
-    if (token) {
-        showApp();
-        return;
-    }
+    if (token) { showApp(); return; }
     $('#auth-screen').style.display = '';
     $('#app-screen').style.display = 'none';
 }
@@ -81,7 +79,10 @@ function parseToken() {
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         currentUser = { id: payload.user_id, role: payload.role };
-        $('.user-name').textContent = currentUser.role === 'admin' ? 'Admin' : 'User #' + currentUser.id;
+        $('.user-name').textContent = currentUser.role === 'admin' ? 'Тренер' : 'User #' + currentUser.id;
+        if (currentUser.role === 'admin') {
+            $('#nav-admin').style.display = '';
+        }
     } catch {
         logout();
     }
@@ -93,21 +94,25 @@ function logout() {
     localStorage.removeItem('token');
     $('#auth-screen').style.display = '';
     $('#app-screen').style.display = 'none';
+    $('#nav-admin').style.display = 'none';
 }
 
 $('#logout-btn').addEventListener('click', logout);
 
-// Navigation
+// ── Navigation ────────────────────────────────────────────
+
 function navigate(page) {
     $$('.page').forEach((p) => p.classList.remove('active'));
     $$('.nav-links button').forEach((b) => b.classList.remove('active'));
     $(`#page-${page}`).classList.add('active');
-    $(`.nav-links button[data-page="${page}"]`).classList.add('active');
+    const btn = $(`.nav-links button[data-page="${page}"]`);
+    if (btn) btn.classList.add('active');
 
     const loaders = {
         workouts: loadWorkouts,
         exercises: loadExercises,
         stats: loadStats,
+        admin: loadAdminUsers,
     };
     if (loaders[page]) loaders[page]();
 }
@@ -116,7 +121,8 @@ $$('.nav-links button').forEach((btn) => {
     btn.addEventListener('click', () => navigate(btn.dataset.page));
 });
 
-// Workouts
+// ── Workouts ──────────────────────────────────────────────
+
 async function loadWorkouts() {
     try {
         const workouts = await api('GET', '/workouts');
@@ -138,6 +144,7 @@ async function loadWorkouts() {
                     </div>
                 </div>
                 ${w.notes ? '<p style="color:var(--text-muted);font-size:0.85rem">' + esc(w.notes) + '</p>' : ''}
+                ${w.trainer_comment ? '<div class="trainer-comment">💬 Тренер: ' + esc(w.trainer_comment) + '</div>' : ''}
             </div>
         `).join('');
     } catch (err) {
@@ -150,7 +157,6 @@ $('#btn-new-workout').addEventListener('click', () => {
     loadExerciseOptions();
 });
 
-$('#workout-modal .modal-overlay, #close-workout-modal').forEach?.(() => {});
 $('#close-workout-modal').addEventListener('click', () => {
     $('#workout-modal').classList.remove('active');
 });
@@ -186,7 +192,7 @@ function addExerciseRow() {
         <input type="number" name="sets" placeholder="Подходы" min="1" value="3">
         <input type="number" name="reps" placeholder="Повторы" min="1" value="10">
         <input type="number" name="weight" placeholder="Вес (кг)" min="0" step="0.5" value="0">
-        <button class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">x</button>
+        <button class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">×</button>
     `;
     container.appendChild(row);
     exerciseRows++;
@@ -242,42 +248,64 @@ async function copyWorkout(id) {
     }
 }
 
-// Exercises
-async function loadExercises() {
+// ── Exercises ─────────────────────────────────────────────
+
+let exerciseSearchTimer = null;
+
+function loadExercises() {
+    const search = $('#exercise-search')?.value || '';
+    const group  = $('#exercise-filter')?.value || '';
+    fetchExercises(group, search);
+}
+
+async function fetchExercises(group, search) {
     try {
-        const exercises = await api('GET', '/exercises');
-        const list = $('#exercises-list');
+        const params = new URLSearchParams();
+        if (group)  params.set('muscle_group', group);
+        if (search) params.set('search', search);
 
-        const adminBtns = currentUser && currentUser.role === 'admin'
-            ? '<button class="btn btn-sm btn-danger" onclick="deleteExercise(${e.id})">Удалить</button>'
-            : '';
-
-        if (!exercises || exercises.length === 0) {
-            list.innerHTML = '<div class="card"><p>Каталог упражнений пуст.</p></div>';
-        } else {
-            list.innerHTML = `<table>
-                <thead><tr><th>ID</th><th>Название</th><th>Группа мышц</th><th>Описание</th>${currentUser?.role === 'admin' ? '<th></th>' : ''}</tr></thead>
-                <tbody>${exercises.map((e) => `
-                    <tr>
-                        <td>${e.id}</td>
-                        <td>${esc(e.name)}</td>
-                        <td><span class="badge">${esc(e.muscle_group)}</span></td>
-                        <td style="color:var(--text-muted)">${esc(e.description)}</td>
-                        ${currentUser?.role === 'admin' ? `<td><button class="btn btn-sm btn-danger" onclick="deleteExercise(${e.id})">x</button></td>` : ''}
-                    </tr>
-                `).join('')}</tbody>
-            </table>`;
-        }
-
-        if (currentUser && currentUser.role === 'admin') {
-            $('#admin-exercise-form').style.display = '';
-        } else {
-            $('#admin-exercise-form').style.display = 'none';
-        }
+        const qs = params.toString() ? '?' + params.toString() : '';
+        const exercises = await api('GET', '/exercises' + qs);
+        window._exercises = exercises || [];
+        renderExercises(exercises || []);
     } catch (err) {
         toast(err.message, 'error');
     }
 }
+
+function renderExercises(exercises) {
+    const list = $('#exercises-list');
+    if (!exercises.length) {
+        list.innerHTML = '<div class="card"><p>Упражнения не найдены.</p></div>';
+    } else {
+        list.innerHTML = `<div class="card"><table>
+            <thead><tr><th>Название</th><th>Группа мышц</th><th>Описание</th>${currentUser?.role === 'admin' ? '<th></th>' : ''}</tr></thead>
+            <tbody>${exercises.map((e) => `
+                <tr>
+                    <td>${esc(e.name)}</td>
+                    <td><span class="badge">${esc(e.muscle_group)}</span></td>
+                    <td style="color:var(--text-muted)">${esc(e.description)}</td>
+                    ${currentUser?.role === 'admin' ? `<td><button class="btn btn-sm btn-danger" onclick="deleteExercise(${e.id})">×</button></td>` : ''}
+                </tr>
+            `).join('')}</tbody>
+        </table></div>`;
+    }
+
+    if (currentUser && currentUser.role === 'admin') {
+        $('#admin-exercise-form').style.display = '';
+    }
+}
+
+$('#exercise-search')?.addEventListener('input', () => {
+    clearTimeout(exerciseSearchTimer);
+    exerciseSearchTimer = setTimeout(() => {
+        fetchExercises($('#exercise-filter').value, $('#exercise-search').value);
+    }, 300);
+});
+
+$('#exercise-filter')?.addEventListener('change', () => {
+    fetchExercises($('#exercise-filter').value, $('#exercise-search').value);
+});
 
 $('#exercise-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -307,7 +335,8 @@ async function deleteExercise(id) {
     }
 }
 
-// Stats
+// ── Stats ─────────────────────────────────────────────────
+
 async function loadStats() {
     try {
         const [prData, volumeData] = await Promise.all([
@@ -328,14 +357,14 @@ async function loadStats() {
 
         $('#stat-pr-count').textContent = prData.length;
         prList.innerHTML = `<table>
-            <thead><tr><th>Упражнение</th><th>Вес</th><th>Подходы x Повторы</th></tr></thead>
+            <thead><tr><th>Упражнение</th><th>Вес</th><th>Подходы × Повторы</th></tr></thead>
             <tbody>${prData.map((r) => {
                 const ex = exercises.find((e) => e.id === r.exercise_id);
                 const name = ex ? ex.name : '#' + r.exercise_id;
                 return `<tr>
                     <td>${esc(name)}</td>
                     <td><span class="badge badge-pr">${r.weight_kg} кг</span></td>
-                    <td>${r.sets}x${r.reps}</td>
+                    <td>${r.sets}×${r.reps}</td>
                 </tr>`;
             }).join('')}</tbody>
         </table>`;
@@ -344,7 +373,125 @@ async function loadStats() {
     }
 }
 
-// Helpers
+// ── Admin panel ───────────────────────────────────────────
+
+async function loadAdminUsers() {
+    $('#admin-users-view').style.display = '';
+    $('#admin-workouts-view').style.display = 'none';
+
+    try {
+        const users = await api('GET', '/admin/users');
+        const list = $('#admin-users-list');
+        if (!users || users.length === 0) {
+            list.innerHTML = '<div class="card"><p>Нет пользователей.</p></div>';
+            return;
+        }
+        list.innerHTML = users.map((u) => `
+            <div class="card" style="cursor:pointer" onclick="loadAdminUserWorkouts(${u.id}, '${esc(u.login)}')">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">${esc(u.login)}</div>
+                        <div class="card-subtitle">${esc(u.email)} · ${u.role}</div>
+                    </div>
+                    <div class="card-actions">
+                        <span class="badge">Тренировки →</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        toast(err.message, 'error');
+    }
+}
+
+async function loadAdminUserWorkouts(userID, login) {
+    $('#admin-users-view').style.display = 'none';
+    $('#admin-workouts-view').style.display = '';
+    $('#admin-user-title').textContent = 'Тренировки: ' + login;
+
+    try {
+        const workouts = await api('GET', '/admin/users/' + userID + '/workouts');
+        const list = $('#admin-workouts-list');
+        if (!workouts || workouts.length === 0) {
+            list.innerHTML = '<div class="card"><p>Нет тренировок.</p></div>';
+            return;
+        }
+        list.innerHTML = workouts.map((w) => `
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">${esc(w.title)}</div>
+                        <div class="card-subtitle">${formatDate(w.date)} · ${w.duration_minutes} мин</div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-outline" onclick="openCommentModal(${w.id}, '${esc(w.trainer_comment || '')}')">
+                            ${w.trainer_comment ? 'Изменить комментарий' : 'Добавить комментарий'}
+                        </button>
+                    </div>
+                </div>
+                ${w.notes ? '<p style="color:var(--text-muted);font-size:0.85rem">' + esc(w.notes) + '</p>' : ''}
+                ${w.trainer_comment ? '<div class="trainer-comment">💬 ' + esc(w.trainer_comment) + '</div>' : ''}
+            </div>
+        `).join('');
+    } catch (err) {
+        toast(err.message, 'error');
+    }
+}
+
+function showAdminUsers() {
+    $('#admin-users-view').style.display = '';
+    $('#admin-workouts-view').style.display = 'none';
+}
+
+function openCommentModal(workoutId, existingComment) {
+    $('#comment-workout-id').value = workoutId;
+    $('#comment-text').value = existingComment || '';
+    $('#comment-modal').classList.add('active');
+}
+
+function closeCommentModal() {
+    $('#comment-modal').classList.remove('active');
+}
+
+$('#comment-modal').addEventListener('click', (e) => {
+    if (e.target === $('#comment-modal')) closeCommentModal();
+});
+
+async function submitComment() {
+    const workoutId = $('#comment-workout-id').value;
+    const comment = $('#comment-text').value;
+    try {
+        await api('PUT', '/admin/workouts/' + workoutId + '/comment', { comment });
+        toast('Комментарий сохранён!');
+        closeCommentModal();
+        // Обновить список тренировок текущего пользователя
+        const title = $('#admin-user-title').textContent.replace('Тренировки: ', '');
+        // Перезагрузить список — находим userID из DOM (workaround: перезагрузить страницу)
+        $('#admin-workouts-list').querySelectorAll('.trainer-comment, button').forEach(() => {});
+        // Простой способ: обновить только нужную карточку без перезагрузки всего
+        const cards = $$('#admin-workouts-list .card');
+        cards.forEach((card) => {
+            const btn = card.querySelector('button');
+            if (btn && btn.onclick && btn.onclick.toString().includes(workoutId)) {
+                const existing = card.querySelector('.trainer-comment');
+                if (existing) existing.remove();
+                if (comment) {
+                    const div = document.createElement('div');
+                    div.className = 'trainer-comment';
+                    div.textContent = '💬 ' + comment;
+                    card.appendChild(div);
+                    btn.textContent = 'Изменить комментарий';
+                    btn.setAttribute('onclick', `openCommentModal(${workoutId}, '${comment.replace(/'/g, "\\'")}')`);
+                }
+            }
+        });
+    } catch (err) {
+        toast(err.message, 'error');
+    }
+}
+
+// ── Helpers ───────────────────────────────────────────────
+
 function esc(s) {
     if (!s) return '';
     const d = document.createElement('div');
@@ -357,5 +504,5 @@ function formatDate(s) {
     return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-// Init
+// ── Init ──────────────────────────────────────────────────
 initAuth();

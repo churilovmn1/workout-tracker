@@ -47,20 +47,15 @@ func (r *ExerciseRepository) GetByID(ctx context.Context, id int) (*models.Exerc
 	return ex, nil
 }
 
-// List returns all exercises, optionally filtered by muscle group.
-func (r *ExerciseRepository) List(ctx context.Context, muscleGroup string) ([]models.Exercise, error) {
-	var rows pgx.Rows
-	var err error
-
-	if muscleGroup != "" {
-		rows, err = r.pool.Query(ctx,
-			`SELECT id, name, muscle_group, description
-			 FROM exercises WHERE muscle_group = $1 ORDER BY name`, muscleGroup)
-	} else {
-		rows, err = r.pool.Query(ctx,
-			`SELECT id, name, muscle_group, description
-			 FROM exercises ORDER BY name`)
-	}
+// List returns exercises filtered by muscle_group and/or name search.
+func (r *ExerciseRepository) List(ctx context.Context, muscleGroup, search string) ([]models.Exercise, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, name, muscle_group, description
+		 FROM exercises
+		 WHERE ($1 = '' OR muscle_group = $1)
+		   AND ($2 = '' OR name ILIKE '%' || $2 || '%')
+		 ORDER BY muscle_group, name`,
+		muscleGroup, search)
 	if err != nil {
 		return nil, fmt.Errorf("list exercises: %w", err)
 	}

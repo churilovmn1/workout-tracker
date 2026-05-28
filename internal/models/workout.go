@@ -10,6 +10,7 @@ type Workout struct {
 	Date            time.Time         `json:"date" db:"date"`
 	DurationMinutes int               `json:"duration_minutes" db:"duration_minutes"`
 	Notes           string            `json:"notes" db:"notes"`
+	TrainerComment  string            `json:"trainer_comment" db:"trainer_comment"`
 	CreatedAt       time.Time         `json:"created_at" db:"created_at"`
 	Exercises       []WorkoutExercise `json:"exercises,omitempty" db:"-"`
 }
